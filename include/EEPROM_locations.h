@@ -1,0 +1,3 @@
+#define SSID_LOCATION 0x00
+#define PASSWORD_LOCATION 0x20
+#define BLOCK_SIZE 32
