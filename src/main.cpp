@@ -1,16 +1,10 @@
+#define HARDWARE "ESP32"
 #include <Arduino.h>
 #include <EEPROM.h>
-#if defined(ESP8266)
-#define HARDWARE "ESP8266"
-#include "ESP8266WiFi.h"
-#include "ESP8266HTTPClient.h"
-#elif defined(ESP32)
-#define HARDWARE "ESP32"
-#include "WiFi.h"
+#include <WiFi.h>
 #include <HTTPClient.h>
-#endif
-
 #include <WiFiClient.h>
+
 #include "utils.h"
 #include "ledMatrixDisplay.h"
 #include "MlbTeam.h"
@@ -39,24 +33,8 @@ MyServer server(80);
 void connect_wifi()
 {
   Serial.println("Reading ssid and password from EEPROM");
-  int ssid_length = EEPROM.read(SSID_LOCATION);
-  int password_length = EEPROM.read(PASSWORD_LOCATION);
-  char *ssid_buf = new char[ssid_length + 1];
-  char *password_buf = new char[password_length + 1];
-  for (int i = 0; i < ssid_length; i++)
-  {
-    ssid_buf[i] = EEPROM.read(i + 1);
-  }
-  ssid_buf[ssid_length] = '\0'; // Null terminate the string
-  for (int i = 0; i < password_length; i++)
-  {
-    password_buf[i] = EEPROM.read(i + 1 + PASSWORD_LOCATION);
-  }
-  password_buf[password_length] = '\0'; // Null terminate the string
-  String ssid = String(ssid_buf);
-  String password = String(password_buf);
-  delete[] ssid_buf;
-  delete[] password_buf;
+  String ssid = EEPROM.readString(SSID_LOCATION);
+  String password = EEPROM.readString(PASSWORD_LOCATION);
 
   Serial.print("SSID: ");
   Serial.println(ssid);
@@ -71,18 +49,14 @@ void connect_wifi()
 
   while (WiFi.status() != WL_CONNECTED)
   { // Wait for the Wi-Fi to connect
-    delay(1000);
+    delay(500);
     Serial.print(++i);
     Serial.print(' ');
-    if (i % 2 == 1)
-    {
-      clearSegmentDisplay();
-    }
-    else
-    {
-      changeAllLEDS(255, 196, 37);
-    }
     showSegmentDisplay();
+    if (i > 10)
+    {
+      return;
+    }
   }
   Serial.println('\n');
   Serial.println("Connection established!");
@@ -147,11 +121,11 @@ void teamUpdateLoop(void *pvParameters)
 {
   while (true)
   {
-    Serial.println("WOOT TEST");
     if (WiFi.status() != WL_CONNECTED)
     {
       Serial.println("Wifi not connected, reconnecting...");
       connect_wifi();
+      continue;
     }
     padres.update();
     firstTeamUpdateDone = true;
@@ -168,13 +142,17 @@ void setup()
   ledMatrix.setupMatrix(LED_MATRIX_BRIGHTNESS);
   // Serial.println("Made it here 2");
   EEPROM.begin(1024); // Initialize EEPROM
+
   WiFi.softAP(access_point_ssid, access_point_password);
   WiFi.softAPsetHostname("padres_scoreboard");
   access_point_ip_address = WiFi.softAPIP();
 
   Serial.print("Access point ip address:");
   Serial.println(access_point_ip_address);
-
+  Serial.print("TEST: ");
+  Serial.println(EEPROM.readInt(LAST_SEG_DISPLAY_BRIGHTNESS_LOCATION));
+  delay(1000);
+  
   xTaskCreatePinnedToCore(
       teamUpdateLoop,   /* Function to implement the task */
       "teamUpdateLoop", /* Name of the task */

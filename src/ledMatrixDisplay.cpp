@@ -5,6 +5,7 @@ LedMatrixDisplay::LedMatrixDisplay(uint8_t pin)
              NEO_MATRIX_TOP + NEO_MATRIX_LEFT + NEO_MATRIX_COLUMNS + NEO_MATRIX_ZIGZAG,
              NEO_GRB + NEO_KHZ800)
 {
+    pinMode(pin, OUTPUT);
     matrixPin = pin;
     currentX = 0;
     currentY = 0;

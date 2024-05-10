@@ -3,7 +3,7 @@
 #include <Adafruit_NeoMatrix.h>
 #include <Adafruit_NeoPixel.h>
 
-#define LED_MATRIX_PIN 12
+#define LED_MATRIX_PIN 32
 #define LED_MATRIX_BRIGHTNESS 256 / 4
 struct ledText
 {
