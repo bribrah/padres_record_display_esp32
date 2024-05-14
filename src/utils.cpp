@@ -94,3 +94,29 @@ String mlbTimeToWestCoast(String inputString)
             westCoastTime->tm_hour < 12 ? "AM" : "PM");
     return formattedString;
 }
+
+void listFiles()
+{
+    File root = SPIFFS.open("/");
+    File file = root.openNextFile();
+    while (file)
+    {
+        Serial.print("FILE: ");
+        Serial.println(file.name());
+        file.close();
+        file = root.openNextFile();
+    }
+}
+
+String loadFile(String filename)
+{
+    File file = SPIFFS.open(filename, "r");
+    if (!file)
+    {
+        Serial.println("Failed to open file for reading");
+        return "";
+    }
+    String fileContents = file.readString();
+    file.close();
+    return fileContents;
+}

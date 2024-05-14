@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Padres Scoreboard display</title>
+</head>
+
+<body>
+    <h1>Padres Scoreboard</h1>
+    <p>Here is the current Padres scoreboard:</p>
+    <div id="scoreboard">
+        <p>Padres vs. Dodgers</p>
+        <p>Padres: <span id="wins"></span></p>
+        <p>Dodgers: <span id="losses"></span></p>
+    </div>
+    <script src="" async defer></script>
+</body>
+
+<script>
+    function getRecord() {
+
+        fetch(window.location.origin + "/record")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("wins").innerText = data.wins;
+                document.getElementById("losses").innerText = data.losses;
+            })
+            .catch(error => res(error))
+    }
+
+
+
+
+    getRecord();
+</script>
+
+</html>

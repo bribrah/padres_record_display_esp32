@@ -4,7 +4,6 @@
 #include <Adafruit_NeoPixel.h>
 
 #define LED_MATRIX_PIN 32
-#define LED_MATRIX_BRIGHTNESS 256 / 4
 struct ledText
 {
     String text;
@@ -23,6 +22,7 @@ public:
     void showMultiTexts(ledText *texts, int numTexts);
     void showSingleText(ledText text);
     void loopMatrix();
+    void setBrightness(uint8_t brightness);
 
 private:
     Adafruit_NeoMatrix matrix;

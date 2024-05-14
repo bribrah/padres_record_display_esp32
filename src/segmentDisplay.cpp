@@ -78,11 +78,16 @@ void clearSegmentDisplay()
     pixels.clear();
 }
 
-void setupSegmentDisplay()
+void setupSegmentDisplay(uint8_t brightness)
 {
     pinMode(LED_PIN, OUTPUT);
     pixels.begin();
-    pixels.setBrightness(LED_NUMBER_BRIGHTNESS);
+    pixels.setBrightness(brightness);
     pixels.clear();
     pixels.show();
+}
+
+void setSegmentBrightness(uint8_t brightness)
+{
+    pixels.setBrightness(brightness);
 }

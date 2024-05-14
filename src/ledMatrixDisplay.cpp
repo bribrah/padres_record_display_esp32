@@ -100,3 +100,8 @@ void LedMatrixDisplay::loopMatrix()
         showText(textArray[currentTextIndex]);
     }
 }
+
+void LedMatrixDisplay::setBrightness(uint8_t brightness)
+{
+    matrix.setBrightness(brightness);
+}
