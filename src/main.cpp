@@ -21,6 +21,8 @@
 #define TEAM_UPDATE_INTERVAL 7500
 #define MATRIX_UPDATE_INTERVAL 18
 #define DEFAULT_BRIGHTNESS 50
+#define POTENTIOMETER_PIN 33
+#define MAX_BRIGHTNESS 200
 
 // led matrix defines
 
@@ -67,11 +69,21 @@ void connect_wifi()
   xTaskCreate(serverLoop, "serverLoop", 10000, NULL, 0, NULL);
 }
 
+int lastBrightness = 0;
 void ledLoop(void *pvParameters)
 {
   while (true)
   {
+    uint16_t potValue = analogRead(POTENTIOMETER_PIN);
+    uint8_t brightness = map(4095 - potValue, 0, 4095, 5, 175);
+    if (abs(brightness - lastBrightness) >= 3)
+    {
+      lastBrightness = brightness;
+      setSegmentBrightness(brightness);
+      ledMatrix.setBrightness(brightness);
+    }
     ledMatrix.loopMatrix();
+    showSegmentDisplay();
     delay(MATRIX_UPDATE_INTERVAL);
   }
 }
