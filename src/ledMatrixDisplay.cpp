@@ -14,6 +14,7 @@ LedMatrixDisplay::LedMatrixDisplay(uint8_t pin)
     numTexts = 0;
     currentTextIndex = 0;
     loopsSinceTextChange = 0;
+    ledMatrixMutex = xSemaphoreCreateMutex();
 }
 
 void LedMatrixDisplay::setupMatrix(uint8_t brightness)
@@ -44,6 +45,7 @@ void LedMatrixDisplay::showText(ledText text)
 
 void LedMatrixDisplay::showMultiTexts(ledText *texts, int numTexts)
 {
+    xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
     if (textArray != nullptr)
     {
         delete[] textArray;
@@ -62,6 +64,7 @@ void LedMatrixDisplay::showMultiTexts(ledText *texts, int numTexts)
     {
         delete[] texts;
     }
+    xSemaphoreGive(ledMatrixMutex);
 }
 
 void LedMatrixDisplay::showSingleText(ledText text)
@@ -83,6 +86,8 @@ void LedMatrixDisplay::loopMatrix()
     {
         return;
     }
+    xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
+
     matrix.fillScreen(0);
     matrix.setCursor(currentX, currentY);
     matrix.print(currentText);
@@ -99,6 +104,7 @@ void LedMatrixDisplay::loopMatrix()
         }
         showText(textArray[currentTextIndex]);
     }
+    xSemaphoreGive(ledMatrixMutex);
 }
 
 void LedMatrixDisplay::setBrightness(uint8_t brightness)

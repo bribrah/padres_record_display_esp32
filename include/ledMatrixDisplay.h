@@ -23,6 +23,7 @@ public:
     void showSingleText(ledText text);
     void loopMatrix();
     void setBrightness(uint8_t brightness);
+    SemaphoreHandle_t ledMatrixMutex;
 
 private:
     Adafruit_NeoMatrix matrix;

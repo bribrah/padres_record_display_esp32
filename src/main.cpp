@@ -23,8 +23,7 @@
 #define DEFAULT_BRIGHTNESS 50
 #define POTENTIOMETER_PIN 33
 #define MAX_BRIGHTNESS 200
-
-// led matrix defines
+#define RESTART_EVERY_N_HOURS 6
 
 int loopNumber = 0;
 bool firstTeamUpdateDone = false;
@@ -34,6 +33,7 @@ const String access_point_ssid = "PadresScoreboard";
 const String access_point_password = "password";
 IPAddress access_point_ip_address;
 bool EEPROM_INITIALIZED = false;
+int startTime = 0;
 
 void connect_wifi()
 {
@@ -185,7 +185,6 @@ void setup()
 
   Serial.print("Access point ip address:");
   Serial.println(access_point_ip_address);
-
   xTaskCreatePinnedToCore(
       teamUpdateLoop,   /* Function to implement the task */
       "teamUpdateLoop", /* Name of the task */
@@ -205,11 +204,15 @@ void setup()
       1,         /* Priority of the task */
       NULL,      /* Task handle. */
       1);        /* Core where the task should run */
-
-  // setServerTeam(&padres);
+  startTime = millis();
 }
 
 void loop()
 {
   delay(1000 * 60);
+  // restart every 24 hours
+  if (millis() - startTime > 1000 * 60 * 60 * RESTART_EVERY_N_HOURS)
+  {
+    ESP.restart();
+  }
 }

@@ -6,32 +6,69 @@
 </head>
 
 <body>
-    <h1>Padres Scoreboard</h1>
-    <p>Here is the current Padres scoreboard:</p>
-    <div id="scoreboard">
-        <p>Padres vs. Dodgers</p>
-        <p>Padres: <span id="wins"></span></p>
-        <p>Dodgers: <span id="losses"></span></p>
-    </div>
-    <script src="" async defer></script>
+    <h1>Network Config</h1>
+    <h3>Wifi Status: <span id="wifiStatus"></span></h3>
+    <h3>Wifi SSID: <span id="wifiSSID"></span></h3>
+    <h3>IP Address: <span id="ipAddress"></span></h3>
+    <h2>Set New SSID/Password</h2>
+    <form action="/wifi" method="post">
+        <label for="ssid">SSID:</label><br>
+        <input type="text" id="ssid" name="ssid"><br>
+        <label for="password">Password:</label><br>
+        <input type="text" id="password" name="password"><br><br>
+        <input type="submit" value="Submit">
+
+        <h1>Current Padres Record</h1>
+        <h3>Wins: <span id="wins"></span></h3>
+        <h3>Losses: <span id="losses"></span></h3>
+        <h3>Winning Percentage: <span id="winningPercentage"></span></h3>
+        <h3>Games Back Division: <span id="gamesBackDivision"></span></h3>
+        <h3>Games Back WC: <span id="gamesBackWC"></span></h3>
+        <h3>Streak: <span id="streak"></span></h3>
+        <h3>Run Differential: <span id="runDifferential"></span></h3>
+        <h3>Runs Scored: <span id="runsScored"></span></h3>
+        <h3>Runs Allowed: <span id="runsAllowed"></span></h3>
+        <h3>Home Record: <span id="homeRecord"></span></h3>
+        <h3>Away Record: <span id="awayRecord"></span></h3>
+        <script>
+            function getRecord() {
+
+                fetch(window.location.origin + "/record")
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("wins").innerText = data.wins;
+                        document.getElementById("losses").innerText = data.losses;
+                        document.getElementById("winningPercentage").innerText = data.winningPercentage;
+                        document.getElementById("gamesBackWC").innerText = data.gamesBackWC;
+                        document.getElementById("gamesBackDivision").innerText = data.gamesBackDivision;
+                        document.getElementById("streak").innerText = data.streak;
+                        document.getElementById("runDifferential").innerText = data.runDifferential;
+                        document.getElementById("runsScored").innerText = data.runsScored;
+                        document.getElementById("runsAllowed").innerText = data.runsAllowed;
+
+                    })
+                    .catch(error => res(error))
+            }
+
+            function getWifi() {
+                fetch(window.location.origin + "/wifi")
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById("wifiStatus").innerText = data.status;
+                        document.getElementById("wifiSSID").innerText = data.ssid;
+                        document.getElementById("ipAddress").innerText = data.ip;
+                    })
+                    .catch(error => res(error))
+            }
+
+            function main() {
+                getRecord();
+                getWifi();
+            }
+
+            window.onload = main;
+        </script>
+
 </body>
-
-<script>
-    function getRecord() {
-
-        fetch(window.location.origin + "/record")
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("wins").innerText = data.wins;
-                document.getElementById("losses").innerText = data.losses;
-            })
-            .catch(error => res(error))
-    }
-
-
-
-
-    getRecord();
-</script>
 
 </html>
