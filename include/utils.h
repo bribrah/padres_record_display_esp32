@@ -15,3 +15,4 @@ JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode);
 String mlbTimeToWestCoast(String inputString);
 void listFiles();
 String loadFile(String filename);
+String removeAccented(String str);

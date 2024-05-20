@@ -132,7 +132,7 @@ void teamUpdateLoop(void *pvParameters)
 
       // SHOW SOME TEXT ON THE ARRAY
       bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
-      String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + " AT " + padres.nextGame.startTime + "!";
+      String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime + "!";
       String probablePitchersStr = "PROBABLE PITCHERS: " + padres.nextGame.homeProbablePitcher + " vs " + padres.nextGame.awayProbablePitcher;
       String gameBackStr = "GAMES BACK NLWEST:" + String(padres.gamesBackFromFirst) + " WC:" + String(padres.gamesBackFromWildcard);
       String divisionRankStr = "DIV RANK:" + String(padres.divisionRank) + " WC RANK:" + String(padres.wildCardRank);

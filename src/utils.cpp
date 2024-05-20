@@ -171,3 +171,62 @@ String loadFile(String filename)
     file.close();
     return fileContents;
 }
+
+String removeAccented(String input)
+{
+    input.replace("á", "a");
+    input.replace("é", "e");
+    input.replace("í", "i");
+    input.replace("ó", "o");
+    input.replace("ú", "u");
+    input.replace("Á", "A");
+    input.replace("É", "E");
+    input.replace("Í", "I");
+    input.replace("Ó", "O");
+    input.replace("Ú", "U");
+
+    input.replace("à", "a");
+    input.replace("è", "e");
+    input.replace("ì", "i");
+    input.replace("ò", "o");
+    input.replace("ù", "u");
+    input.replace("À", "A");
+    input.replace("È", "E");
+    input.replace("Ì", "I");
+    input.replace("Ò", "O");
+    input.replace("Ù", "U");
+
+    input.replace("â", "a");
+    input.replace("ê", "e");
+    input.replace("î", "i");
+    input.replace("ô", "o");
+    input.replace("û", "u");
+    input.replace("Â", "A");
+    input.replace("Ê", "E");
+    input.replace("Î", "I");
+    input.replace("Ô", "O");
+    input.replace("Û", "U");
+
+    input.replace("ã", "a");
+    input.replace("õ", "o");
+    input.replace("Ã", "A");
+    input.replace("Õ", "O");
+
+    input.replace("ä", "a");
+    input.replace("ë", "e");
+    input.replace("ï", "i");
+    input.replace("ö", "o");
+    input.replace("ü", "u");
+    input.replace("Ä", "A");
+    input.replace("Ë", "E");
+    input.replace("Ï", "I");
+    input.replace("Ö", "O");
+    input.replace("Ü", "U");
+
+    input.replace("ñ", "n");
+    input.replace("Ñ", "N");
+    input.replace("ç", "c");
+    input.replace("Ç", "C");
+
+    return input;
+}

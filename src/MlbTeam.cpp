@@ -153,15 +153,34 @@ void MlbTeam::getNextGame(int &httpCode)
                     if (httpCode == 200)
                     {
 
-                        nextGame.homeTeam = (const char *)jsonObject["gameData"]["teams"]["home"]["name"];
+                        nextGame.homeTeam = (String)(const char *)jsonObject["gameData"]["teams"]["home"]["abbreviation"] + " " + (String)(const char *)jsonObject["gameData"]["teams"]["home"]["teamName"];
                         nextGame.homeTeamId = (int)jsonObject["gameData"]["teams"]["home"]["id"];
-                        nextGame.awayTeam = (const char *)jsonObject["gameData"]["teams"]["away"]["name"];
+
+                        nextGame.awayTeam = (String)(const char *)jsonObject["gameData"]["teams"]["away"]["abbreviation"] + " " + (String)(const char *)jsonObject["gameData"]["teams"]["away"]["teamName"];
                         nextGame.awayTeamId = (int)jsonObject["gameData"]["teams"]["away"]["id"];
                         nextGame.gameId = (int)jsonObject["gamePk"];
-                        nextGame.homeProbablePitcher = (const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"];
-                        nextGame.awayProbablePitcher = (const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"];
+                        nextGame.homeProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"]);
+                        nextGame.awayProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"]);
+                        Serial.print("Next game probable pitchers: ");
+                        Serial.print(nextGame.homeProbablePitcher);
+                        Serial.print(" vs ");
+                        Serial.println(nextGame.awayProbablePitcher);
+
+                        bool padresHome = nextGame.homeTeamId == teamId;
+                        if (padresHome)
+                        {
+                            nextOpponentRecord.losses = (int)jsonObject["gameData"]["teams"]["away"]["record"]["losses"];
+                            nextOpponentRecord.wins = (int)jsonObject["gameData"]["teams"]["away"]["record"]["wins"];
+                        }
+                        else
+                        {
+                            nextOpponentRecord.losses = (int)jsonObject["gameData"]["teams"]["home"]["record"]["losses"];
+                            nextOpponentRecord.wins = (int)jsonObject["gameData"]["teams"]["home"]["record"]["wins"];
+                        }
+
                         // game time format is 2024-04-30T01:40:00Z"
                         nextGame.startTime = mlbTimeToWestCoast((const char *)jsonObject["gameData"]["datetime"]["dateTime"]);
+
                         nextGame.populated = true;
                         break;
                     }

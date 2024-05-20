@@ -23,6 +23,7 @@ public:
     String lastPlay;
 
     winLossRecord record;
+    winLossRecord nextOpponentRecord;
     bool isPlaying;
     gameInfo currentGame;
     gameInfo nextGame;
