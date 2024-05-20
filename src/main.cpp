@@ -19,11 +19,11 @@
 // 7 segmemnt display defines
 // task defines
 #define TEAM_UPDATE_INTERVAL 7500
-#define MATRIX_UPDATE_INTERVAL 18
+#define MATRIX_UPDATE_INTERVAL 15
 #define DEFAULT_BRIGHTNESS 50
 #define POTENTIOMETER_PIN 33
 #define MAX_BRIGHTNESS 200
-#define RESTART_EVERY_N_HOURS 6
+#define RESTART_EVERY_N_HOURS 24
 
 int loopNumber = 0;
 bool firstTeamUpdateDone = false;
@@ -113,11 +113,14 @@ void teamUpdateLoop(void *pvParameters)
       showSegmentDisplay();
 
       // SHOW SOME TEXT ON THE ARRAY
-      String gameStr = "GAME ON VS " + (padresHome ? game.awayTeam : game.homeTeam) + "!";
+
+      String gameStr = "Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")";
       String inningStr = "INNING:" + game.inningState + " of " + game.currentInning;
-      String padresRecordStr = "Padres Record: " + String(padres.record.wins) + "-" + String(padres.record.losses);
-      ledText *texts = new ledText[3]{{gameStr, 255, 255, 0}, {inningStr, 0, 255, 0}, {padresRecordStr, 0, 0, 255}};
-      ledMatrix.showMultiTexts(texts, 3);
+      ledText *texts = new ledText[2]{
+          {gameStr, 255, 255, 0},
+          {inningStr, 0, 255, 0},
+      };
+      ledMatrix.showMultiTexts(texts, 2);
     }
     else
     {
@@ -129,15 +132,15 @@ void teamUpdateLoop(void *pvParameters)
 
       // SHOW SOME TEXT ON THE ARRAY
       bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
-      char buf[1024];
       String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + " AT " + padres.nextGame.startTime + "!";
+      String probablePitchersStr = "PROBABLE PITCHERS: " + padres.nextGame.homeProbablePitcher + " vs " + padres.nextGame.awayProbablePitcher;
       String gameBackStr = "GAMES BACK NLWEST:" + String(padres.gamesBackFromFirst) + " WC:" + String(padres.gamesBackFromWildcard);
       String divisionRankStr = "DIV RANK:" + String(padres.divisionRank) + " WC RANK:" + String(padres.wildCardRank);
       String streakStr = "Streak:" + padres.streakType + " " + padres.streakNumber;
       bool isWinStreak = padres.streakType == "wins";
-      ledText *texts = new ledText[4]{{nextGameStr, 255, 255, 0}, {gameBackStr, 255, 0, 0}, {divisionRankStr, 0, 0, 255}, {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0}};
 
-      ledMatrix.showMultiTexts(texts, 4);
+      ledText *texts = new ledText[5]{{nextGameStr, 255, 255, 0}, {probablePitchersStr, 198, 52, 235}, {gameBackStr, 255, 0, 0}, {divisionRankStr, 0, 0, 255}, {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0}};
+      ledMatrix.showMultiTexts(texts, 5);
     }
     delay(TEAM_UPDATE_INTERVAL);
   }

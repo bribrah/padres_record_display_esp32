@@ -20,6 +20,7 @@ public:
     String teamLeague;
     String teamVenue;
     String streakType;
+    String lastPlay;
 
     winLossRecord record;
     bool isPlaying;
@@ -35,8 +36,10 @@ public:
     int streakNumber;
     int runsAllowed;
     int runsScored;
+    MlbTeam *opponent;
 
     MlbTeam(int teamId);
+    MlbTeam();
 
     void update();
     void begin();

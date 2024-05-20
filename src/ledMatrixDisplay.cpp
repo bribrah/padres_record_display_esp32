@@ -69,6 +69,7 @@ void LedMatrixDisplay::showMultiTexts(ledText *texts, int numTexts)
 
 void LedMatrixDisplay::showSingleText(ledText text)
 {
+    xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
     numTexts = 1;
     if (textArray != nullptr)
     {
@@ -78,6 +79,7 @@ void LedMatrixDisplay::showSingleText(ledText text)
     textArray[0] = text;
 
     showText(text);
+    xSemaphoreGive(ledMatrixMutex);
 }
 
 void LedMatrixDisplay::loopMatrix()

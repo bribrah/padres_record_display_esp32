@@ -19,8 +19,12 @@ struct gameInfo
 {
     String homeTeam;
     int homeTeamId;
+    String homeProbablePitcher;
+    
     String awayTeam;
     int awayTeamId;
+    String awayProbablePitcher;
+
     int gameId;
     String startTime;
     int currentInning;

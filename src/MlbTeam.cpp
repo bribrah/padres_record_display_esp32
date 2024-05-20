@@ -5,6 +5,10 @@ MlbTeam::MlbTeam(int teamId)
     this->teamId = teamId;
 }
 
+MlbTeam::MlbTeam()
+{
+}
+
 void MlbTeam::update()
 {
     int httpCode;
@@ -45,6 +49,12 @@ bool MlbTeam::getIsCurrentlyPlaying(int &httpCode)
                 currentGame.awayTeam = (const char *)games[i]["teams"]["away"]["team"]["name"];
                 currentGame.awayTeamId = (int)games[i]["teams"]["away"]["team"]["id"];
                 currentGame.gameId = (int)games[i]["gamePk"];
+                if (opponent != nullptr)
+                {
+                    delete opponent;
+                }
+                opponent = new MlbTeam(currentGame.homeTeamId == teamId ? currentGame.awayTeamId : currentGame.homeTeamId);
+                opponent->getTeamDetails(httpCode);
                 currentGame.populated = true;
                 return true;
             }
@@ -122,21 +132,43 @@ void MlbTeam::getNextGame(int &httpCode)
 {
     String url = "http://statsapi.mlb.com/api/v1/teams/" + String(teamId) + "/?hydrate=nextSchedule";
     JsonDocument jsonObject = makeHttpRequest(url, httpCode);
-
+    nextGame.populated = false;
     if (httpCode == 200)
     {
         for (int i = 0; i < jsonObject["teams"][0]["nextGameSchedule"]["dates"].size(); i++)
         {
-            if (jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["status"]["abstractGameState"] == "Preview")
+            int numGames = jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"].size();
+            for (int j = 0; j < numGames; j++)
             {
-                nextGame.homeTeam = (const char *)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["teams"]["home"]["team"]["name"];
-                nextGame.homeTeamId = (int)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["teams"]["home"]["team"]["id"];
-                nextGame.awayTeam = (const char *)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["teams"]["away"]["team"]["name"];
-                nextGame.awayTeamId = (int)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["teams"]["away"]["team"]["id"];
-                nextGame.gameId = (int)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["gamePk"];
-                // game time format is 2024-04-30T01:40:00Z"
-                nextGame.startTime = mlbTimeToWestCoast(jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][0]["gameDate"]);
-                nextGame.populated = true;
+                if (jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][j]["status"]["abstractGameState"] == "Preview")
+                {
+                    String link = (const char *)jsonObject["teams"][0]["nextGameSchedule"]["dates"][i]["games"][j]["link"];
+                    url = "http://statsapi.mlb.com" + link;
+                    JsonDocument filter;
+                    filter["gameData"]["teams"] = true;
+                    filter["gameData"]["probablePitchers"] = true;
+                    filter["gameData"]["datetime"] = true;
+
+                    jsonObject = makeHttpRequest(url, filter, httpCode);
+                    if (httpCode == 200)
+                    {
+
+                        nextGame.homeTeam = (const char *)jsonObject["gameData"]["teams"]["home"]["name"];
+                        nextGame.homeTeamId = (int)jsonObject["gameData"]["teams"]["home"]["id"];
+                        nextGame.awayTeam = (const char *)jsonObject["gameData"]["teams"]["away"]["name"];
+                        nextGame.awayTeamId = (int)jsonObject["gameData"]["teams"]["away"]["id"];
+                        nextGame.gameId = (int)jsonObject["gamePk"];
+                        nextGame.homeProbablePitcher = (const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"];
+                        nextGame.awayProbablePitcher = (const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"];
+                        // game time format is 2024-04-30T01:40:00Z"
+                        nextGame.startTime = mlbTimeToWestCoast((const char *)jsonObject["gameData"]["datetime"]["dateTime"]);
+                        nextGame.populated = true;
+                        break;
+                    }
+                }
+            }
+            if (nextGame.populated)
+            {
                 break;
             }
         }
@@ -154,7 +186,6 @@ void MlbTeam::getDivisionStandings(int &httpCode)
     JsonDocument jsonObject = makeHttpRequest(url, httpCode);
     if (httpCode == 200)
     {
-        
     }
     else
     {

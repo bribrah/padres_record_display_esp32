@@ -60,6 +60,57 @@ JsonDocument makeHttpRequest(String url, int &httpCode)
     return doc;
 }
 
+JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode)
+{
+    Serial.println("*************************** Making HTTP request to: " + url + " ***************************");
+    WiFiClient client;
+    HTTPClient http;
+    int start = millis();
+    int totalStart = millis();
+
+    Serial.println("Making HTTP request to: " + url);
+
+    http.useHTTP10(true);
+    http.begin(client, url);
+    http.addHeader("Content-Type", "application/json"); // Specify content-type header
+    httpCode = http.GET();                              // Send the request
+    Serial.print("Finished making request, took: ");
+    Serial.println(millis() - start);
+    JsonDocument doc;
+
+    if (httpCode == 200)
+    {
+        Serial.print("HTTP Response code: ");
+        Serial.println(httpCode);
+        Serial.println("Starting to parse response");
+        start = millis();
+        ReadBufferingStream bufferedFile(http.getStream(), 64);
+        DeserializationError error = deserializeJson(doc, bufferedFile, DeserializationOption::NestingLimit(50), DeserializationOption::Filter(filter));
+        Serial.print("Finished parsing response, took: ");
+        Serial.println(millis() - start);
+        http.end();
+        if (error)
+        {
+            bool overAllocated = doc.overflowed();
+            Serial.print("Deserialization error: ");
+            Serial.println(error.c_str());
+            if (overAllocated)
+            {
+                Serial.println("Document was overallocated");
+            }
+        }
+    }
+    else
+    {
+        Serial.print("Error code: ");
+        Serial.println(httpCode);
+    }
+    Serial.print("Total time: ");
+    Serial.println(millis() - totalStart);
+    Serial.println("************************ Finished HTTP request ************************");
+    return doc;
+}
+
 String mlbTimeToWestCoast(String inputString)
 {
 
