@@ -4,6 +4,7 @@
 #include <Adafruit_NeoPixel.h>
 
 #define LED_MATRIX_PIN 32
+#define MAX_TEXTS 10
 struct ledText
 {
     String text;
@@ -32,7 +33,7 @@ private:
     String currentText;
     int textLength;
     uint8_t matrixPin;
-    ledText *textArray;
+    ledText textArray[MAX_TEXTS];
     int numTexts;
     int currentTextIndex;
     int loopsSinceTextChange;

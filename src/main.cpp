@@ -6,6 +6,7 @@
 #include <WiFiClient.h>
 #include <SPIFFS.h>
 #include <FS.h>
+#include <esp_task_wdt.h>
 
 #include "utils.h"
 #include "ledMatrixDisplay.h"
@@ -72,10 +73,12 @@ void connect_wifi()
 int lastBrightness = 0;
 void ledLoop(void *pvParameters)
 {
+  esp_task_wdt_add(NULL); // Add the current thread to the watchdog monitor
   while (true)
   {
+    esp_task_wdt_reset(); // Reset the watchdog timer
     uint16_t potValue = analogRead(POTENTIOMETER_PIN);
-    uint8_t brightness = map(4095 - potValue, 0, 4095, 5, 175);
+    uint8_t brightness = map(4095 - potValue, 0, 4095, 5, MAX_BRIGHTNESS);
     if (abs(brightness - lastBrightness) >= 3)
     {
       lastBrightness = brightness;
@@ -88,10 +91,13 @@ void ledLoop(void *pvParameters)
   }
 }
 
+ledText texts[MAX_TEXTS];
 void teamUpdateLoop(void *pvParameters)
 {
+  esp_task_wdt_add(NULL); // Add current task to watchdog
   while (true)
   {
+    esp_task_wdt_reset();
     if (WiFi.status() != WL_CONNECTED)
     {
       Serial.println("Wifi not connected, reconnecting...");
@@ -99,13 +105,15 @@ void teamUpdateLoop(void *pvParameters)
       delay(100);
       continue;
     }
+    esp_task_wdt_reset();
+
     padres.update();
     clearSegmentDisplay();
     if (padres.isPlaying)
     {
       // show score
       gameInfo game = padres.currentGame;
-      gameScore score = padres.score;
+      gameScore score = padres.currentGame.score;
       bool padresHome = game.homeTeamId == PADRES_TEAM_ID;
       illuminateNumber(score.homeScore, padresHome ? 0 : 255, padresHome ? 255 : 0, 0, 0);
       illuminateNumber(score.awayScore, padresHome ? 255 : 0, padresHome ? 0 : 255, 0, 2);
@@ -113,14 +121,20 @@ void teamUpdateLoop(void *pvParameters)
       showSegmentDisplay();
 
       // SHOW SOME TEXT ON THE ARRAY
+      texts[0] = {"Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamAbbreviation + " " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")", 255, 255, 0};
+      texts[1] = {"INNING:" + game.inningState + " of " + game.currentInning, 0, 0, 255};
 
-      String gameStr = "Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")";
-      String inningStr = "INNING:" + game.inningState + " of " + game.currentInning;
-      ledText *texts = new ledText[2]{
-          {gameStr, 255, 255, 0},
-          {inningStr, 0, 255, 0},
-      };
-      ledMatrix.showMultiTexts(texts, 2);
+      if (game.inningState == "Top" || game.inningState == "Bottom")
+        texts[1].text += " " + (String)game.outs + " OUTS ";
+      if (padres.currentGame.hasLastPlay)
+      {
+        texts[2] = {"LAST PLAY:" + game.lastPlay, 122, 5, 232};
+      }
+      for (int i = 0; i < 3; i++)
+      {
+        Serial.println(texts[i].text);
+      }
+      ledMatrix.showMultiTexts(texts, 3);
     }
     else
     {
@@ -132,14 +146,19 @@ void teamUpdateLoop(void *pvParameters)
 
       // SHOW SOME TEXT ON THE ARRAY
       bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
-      String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime + "!";
-      String probablePitchersStr = "PROBABLE PITCHERS: " + padres.nextGame.homeProbablePitcher + " vs " + padres.nextGame.awayProbablePitcher;
+      String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime;
+      String probablePitchersStr = "PROBABLE PITCHERS:" + padres.nextGame.homeTeamAbbreviation + ":" + padres.nextGame.homeProbablePitcher + " " + padres.nextGame.awayTeamAbbreviation + ":" + padres.nextGame.awayProbablePitcher;
       String gameBackStr = "GAMES BACK NLWEST:" + String(padres.gamesBackFromFirst) + " WC:" + String(padres.gamesBackFromWildcard);
       String divisionRankStr = "DIV RANK:" + String(padres.divisionRank) + " WC RANK:" + String(padres.wildCardRank);
       String streakStr = "Streak:" + padres.streakType + " " + padres.streakNumber;
       bool isWinStreak = padres.streakType == "wins";
 
-      ledText *texts = new ledText[5]{{nextGameStr, 255, 255, 0}, {probablePitchersStr, 198, 52, 235}, {gameBackStr, 255, 0, 0}, {divisionRankStr, 0, 0, 255}, {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0}};
+      texts[0] = {nextGameStr, 255, 255, 0};
+      texts[1] = {probablePitchersStr, 122, 5, 232};
+      texts[2] = {gameBackStr, 0, 0, 255};
+      texts[3] = {divisionRankStr, 7, 191, 247};
+      texts[4] = {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0};
+
       ledMatrix.showMultiTexts(texts, 5);
     }
     delay(TEAM_UPDATE_INTERVAL);
@@ -173,14 +192,8 @@ void setup()
   EEPROM.writeString(SSID_LOCATION, "T_TOWN-2G");
   EEPROM.writeString(PASSWORD_LOCATION, "People46");
   EEPROM.commit();
-  uint8_t lastSegBrightness = EEPROM.read(LAST_SEG_DISPLAY_BRIGHTNESS_LOCATION);
-  uint8_t lastMatBrightness = EEPROM.read(LAST_MATRIX_BRIGHTNESS_LOCATION);
-  Serial.print("Last Segment Display Brightness: ");
-  Serial.println(lastSegBrightness);
-  Serial.print("Last Matrix Brightness: ");
-  Serial.println(lastMatBrightness);
-  setupSegmentDisplay(lastSegBrightness);
-  ledMatrix.setupMatrix(lastMatBrightness);
+  setupSegmentDisplay(50);
+  ledMatrix.setupMatrix(50);
 
   WiFi.softAP(access_point_ssid, access_point_password);
   WiFi.softAPsetHostname("padres_scoreboard");
@@ -188,6 +201,7 @@ void setup()
 
   Serial.print("Access point ip address:");
   Serial.println(access_point_ip_address);
+  esp_task_wdt_init(30, true); // 5 seconds timeout, and set panic handler true to reset the device
   xTaskCreatePinnedToCore(
       teamUpdateLoop,   /* Function to implement the task */
       "teamUpdateLoop", /* Name of the task */
@@ -199,12 +213,14 @@ void setup()
 
   delay(1000);
 
+  // Enable watchdog on Timer 0
+
   xTaskCreatePinnedToCore(
       ledLoop,   /* Function to implement the task */
       "ledLoop", /* Name of the task */
       10000,     /* Stack size in words */
       NULL,      /* Task input parameter */
-      1,         /* Priority of the task */
+      0,         /* Priority of the task */
       NULL,      /* Task handle. */
       1);        /* Core where the task should run */
   startTime = millis();

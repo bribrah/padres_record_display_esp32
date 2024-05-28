@@ -18,10 +18,15 @@ void MlbTeam::update()
     delay(200);
     if (this->isPlaying)
     {
-        this->score = getGameScore(this->currentGame, httpCode);
+        getCurrentGameInfo(httpCode);
+        currentGame.populated = true;
         delay(200);
     }
-    getNextGame(httpCode);
+    else
+    {
+        currentGame.populated = false;
+        getNextGame(httpCode);
+    }
     delay(200);
 
     // printAllInfo();
@@ -69,26 +74,46 @@ bool MlbTeam::getIsCurrentlyPlaying(int &httpCode)
     }
 }
 
-gameScore MlbTeam::getGameScore(gameInfo game, int &httpCode)
+void MlbTeam::getCurrentGameInfo(int &httpCode)
 {
-    Serial.println("Getting game score of game id: " + String(game.gameId));
+    Serial.println("Getting game score of game id: " + String(currentGame.gameId));
     gameScore score = {0, 0};
 
-    String url = "http://statsapi.mlb.com/api/v1/game/" + String(game.gameId) + "/linescore";
-    JsonDocument jsonObject = makeHttpRequest(url, httpCode);
+    // String url = "http://statsapi.mlb.com/api/v1/game/" + String(game.gameId) + "/linescore";
+    String url = "http://statsapi.mlb.com/api/v1.1/game/" + String(currentGame.gameId) + "/feed/live";
+    JsonDocument filters;
+    filters["liveData"]["linescore"]["teams"] = true;
+    filters["liveData"]["linescore"]["currentInning"] = true;
+    filters["liveData"]["linescore"]["inningState"] = true;
+    filters["liveData"]["linescore"]["outs"] = true;
+    filters["liveData"]["linescore"]["balls"] = true;
+    filters["liveData"]["linescore"]["strikes"] = true;
+    filters["liveData"]["plays"]["currentPlay"] = true;
+    JsonDocument jsonObject = makeHttpRequest(url, filters, httpCode);
     if (httpCode == 200)
     {
-        score.homeScore = jsonObject["teams"]["home"]["runs"];
-        score.awayScore = jsonObject["teams"]["away"]["runs"];
-        currentGame.currentInning = jsonObject["currentInning"];
-        currentGame.inningState = (const char *)jsonObject["inningState"];
-        return score;
+        score.homeScore = jsonObject["liveData"]["linescore"]["teams"]["home"]["runs"];
+        score.awayScore = jsonObject["liveData"]["linescore"]["teams"]["away"]["runs"];
+        currentGame.currentInning = jsonObject["liveData"]["linescore"]["currentInning"];
+        currentGame.inningState = (const char *)jsonObject["liveData"]["linescore"]["inningState"];
+        currentGame.outs = jsonObject["liveData"]["linescore"]["outs"];
+        currentGame.balls = jsonObject["liveData"]["linescore"]["balls"];
+        currentGame.strikes = jsonObject["liveData"]["linescore"]["strikes"];
+        currentGame.score = score;
+        if (jsonObject["liveData"]["plays"]["currentPlay"]["result"].containsKey("description"))
+        {
+            currentGame.lastPlay = (const char *)jsonObject["liveData"]["plays"]["currentPlay"]["result"]["description"];
+            currentGame.hasLastPlay = true;
+        }
+        else
+        {
+            currentGame.hasLastPlay = false;
+        }
     }
     else
     {
         Serial.print("Error getting game score code: ");
         Serial.println(httpCode);
-        return score;
     }
 }
 
@@ -99,7 +124,8 @@ void MlbTeam::getTeamDetails(int &httpCode)
     JsonDocument jsonObject = makeHttpRequest(url, httpCode);
     if (httpCode == 200)
     {
-        teamName = (const char *)(jsonObject["teams"][0]["name"]);
+        fullName = (const char *)(jsonObject["teams"][0]["name"]);
+        teamName = (const char *)(jsonObject["teams"][0]["teamName"]);
         teamAbbreviation = (const char *)(jsonObject["teams"][0]["abbreviation"]);
         teamCity = (const char *)(jsonObject["teams"][0]["locationName"]);
         teamDivision = (const char *)(jsonObject["teams"][0]["division"]["name"]);
@@ -155,9 +181,12 @@ void MlbTeam::getNextGame(int &httpCode)
 
                         nextGame.homeTeam = (String)(const char *)jsonObject["gameData"]["teams"]["home"]["abbreviation"] + " " + (String)(const char *)jsonObject["gameData"]["teams"]["home"]["teamName"];
                         nextGame.homeTeamId = (int)jsonObject["gameData"]["teams"]["home"]["id"];
+                        nextGame.homeTeamAbbreviation = (const char *)jsonObject["gameData"]["teams"]["home"]["abbreviation"];
 
                         nextGame.awayTeam = (String)(const char *)jsonObject["gameData"]["teams"]["away"]["abbreviation"] + " " + (String)(const char *)jsonObject["gameData"]["teams"]["away"]["teamName"];
                         nextGame.awayTeamId = (int)jsonObject["gameData"]["teams"]["away"]["id"];
+                        nextGame.awayTeamAbbreviation = (const char *)jsonObject["gameData"]["teams"]["away"]["abbreviation"];
+
                         nextGame.gameId = (int)jsonObject["gamePk"];
                         nextGame.homeProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"]);
                         nextGame.awayProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"]);

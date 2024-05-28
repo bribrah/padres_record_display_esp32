@@ -1,5 +1,7 @@
 #include "segmentDisplay.h"
 
+xSemaphoreHandle segmentDisplayMutex = xSemaphoreCreateMutex();
+
 int numberSegmentLookup[10][7] = {
     {1, 2, 3, 4, 5, 6, -1},     // 0
     {1, 6, -1, -1, -1, -1, -1}, // 1
@@ -17,13 +19,15 @@ Adafruit_NeoPixel pixels(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 void changeAllLEDS(int r, int g, int b)
 {
+    xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     for (int i = 0; i < NUM_LEDS; i++)
     {
         pixels.setPixelColor(i, pixels.Color(r, g, b));
     }
+    xSemaphoreGive(segmentDisplayMutex);
 }
 
-void illuminateSegment(int digit, int segment, int r, int g, int b)
+void _illuminateSegment(int digit, int segment, int r, int g, int b)
 {
 
     int start = (digit * 4 * 7) + segment * 4;
@@ -35,6 +39,7 @@ void illuminateSegment(int digit, int segment, int r, int g, int b)
 
 void illuminateNumber(int number, int r, int g, int b, int digitOffset)
 {
+    xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     if (number >= 100)
     {
         return;
@@ -47,11 +52,11 @@ void illuminateNumber(int number, int r, int g, int b, int digitOffset)
         {
             if (numberSegmentLookup[firstDigit][i] != -1)
             {
-                illuminateSegment(0 + digitOffset, numberSegmentLookup[firstDigit][i], r, g, b);
+                _illuminateSegment(0 + digitOffset, numberSegmentLookup[firstDigit][i], r, g, b);
             }
             if (numberSegmentLookup[secondDigit][i] != -1)
             {
-                illuminateSegment(1 + digitOffset, numberSegmentLookup[secondDigit][i], r, g, b);
+                _illuminateSegment(1 + digitOffset, numberSegmentLookup[secondDigit][i], r, g, b);
             }
         }
     }
@@ -63,14 +68,17 @@ void illuminateNumber(int number, int r, int g, int b, int digitOffset)
             {
                 break;
             }
-            illuminateSegment(1 + digitOffset, numberSegmentLookup[number][i], r, g, b);
+            _illuminateSegment(1 + digitOffset, numberSegmentLookup[number][i], r, g, b);
         }
     }
+    xSemaphoreGive(segmentDisplayMutex);
 }
 
 void showSegmentDisplay()
 {
+    xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     pixels.show();
+    xSemaphoreGive(segmentDisplayMutex);
 }
 
 void clearSegmentDisplay()

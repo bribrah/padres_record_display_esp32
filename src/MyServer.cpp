@@ -14,7 +14,7 @@ void getRecord()
     Serial.println("Getting Record");
     JsonDocument doc;
     JsonObject obj = doc.to<JsonObject>();
-    obj["team"] = padres.teamName;
+    obj["team"] = padres.fullName;
     obj["wins"] = padres.record.wins;
     obj["losses"] = padres.record.losses;
     obj["winningPercentage"] = (float)padres.record.wins / ((float)padres.record.wins + (float)padres.record.losses);
@@ -56,7 +56,6 @@ void setSSID()
     EEPROM.writeString(PASSWORD_LOCATION, password);
     server.send(200, "text/html", "SSID set to: " + ssid);
     WiFi.disconnect();
-    
 }
 
 void serverLoop(void *parameter)

@@ -7,7 +7,6 @@
 #define COLOR_ORDER GRB
 
 void changeAllLEDS(int r, int g, int b);
-void illuminateSegment(int digit, int segment, int r, int g, int b);
 void illuminateNumber(int number, int r, int g, int b, int digitOffset);
 void showSegmentDisplay();
 void clearSegmentDisplay();

@@ -46,24 +46,17 @@ void LedMatrixDisplay::showText(ledText text)
 void LedMatrixDisplay::showMultiTexts(ledText *texts, int numTexts)
 {
     xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
-    if (textArray != nullptr)
+    for (int i = 0; i < numTexts; i++)
     {
-        delete[] textArray;
+        textArray[i] = texts[i];
     }
 
-    textArray = new ledText[numTexts];
-    std::copy(texts, texts + numTexts, textArray);
     if (numTexts != this->numTexts)
     {
-        currentTextIndex = 0;
-        showText(textArray[0]);
+        currentTextIndex = -1;
     }
     this->numTexts = numTexts;
     loopsSinceTextChange = 0;
-    if (texts != nullptr)
-    {
-        delete[] texts;
-    }
     xSemaphoreGive(ledMatrixMutex);
 }
 
@@ -71,14 +64,8 @@ void LedMatrixDisplay::showSingleText(ledText text)
 {
     xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
     numTexts = 1;
-    if (textArray != nullptr)
-    {
-        delete[] textArray;
-    }
-    textArray = new ledText[numTexts];
     textArray[0] = text;
-
-    showText(text);
+    currentTextIndex = -1 ;
     xSemaphoreGive(ledMatrixMutex);
 }
 

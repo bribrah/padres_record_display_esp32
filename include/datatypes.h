@@ -18,10 +18,12 @@ struct gameScore
 struct gameInfo
 {
     String homeTeam;
+    String homeTeamAbbreviation;
     int homeTeamId;
     String homeProbablePitcher;
-    
+
     String awayTeam;
+    String awayTeamAbbreviation;
     int awayTeamId;
     String awayProbablePitcher;
 
@@ -30,5 +32,11 @@ struct gameInfo
     int currentInning;
     String inningState;
     String lastPlay;
+    bool hasLastPlay;
+    gameScore score;
+    int outs;
+    int balls;
+    int strikes;
+
     bool populated = false;
 };

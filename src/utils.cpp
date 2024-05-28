@@ -85,7 +85,7 @@ JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode)
         Serial.println("Starting to parse response");
         start = millis();
         ReadBufferingStream bufferedFile(http.getStream(), 64);
-        DeserializationError error = deserializeJson(doc, bufferedFile, DeserializationOption::NestingLimit(50), DeserializationOption::Filter(filter));
+        DeserializationError error = deserializeJson(doc, bufferedFile, DeserializationOption::NestingLimit(14), DeserializationOption::Filter(filter));
         Serial.print("Finished parsing response, took: ");
         Serial.println(millis() - start);
         http.end();

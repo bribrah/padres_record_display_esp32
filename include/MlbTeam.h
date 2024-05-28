@@ -13,6 +13,7 @@ public:
     int teamId;
     int divisionId;
     int leagueId;
+    String fullName;
     String teamName;
     String teamAbbreviation;
     String teamCity;
@@ -46,7 +47,7 @@ public:
     void begin();
 
     bool getIsCurrentlyPlaying(int &httpCode);
-    gameScore getGameScore(gameInfo game, int &httpCode);
+    void getCurrentGameInfo(int &httpCode);
 
     void getTeamDetails(int &httpCode);
     void getNextGame(int &httpCode);
