@@ -54,7 +54,9 @@ void setSSID()
     String password = server.arg("password");
     EEPROM.writeString(SSID_LOCATION, ssid);
     EEPROM.writeString(PASSWORD_LOCATION, password);
+    EEPROM.commit();
     server.send(200, "text/html", "SSID set to: " + ssid);
+    delay(100);
     WiFi.disconnect();
 }
 

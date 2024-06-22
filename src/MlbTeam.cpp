@@ -143,6 +143,8 @@ void MlbTeam::getTeamDetails(int &httpCode)
         runsAllowed = jsonObject["teams"][0]["record"]["runsAllowed"];
         runsScored = jsonObject["teams"][0]["record"]["runsScored"];
 
+        lastTenRecord.wins = jsonObject["teams"][0]["record"]["records"]["splitRecords"][8]["wins"];
+        lastTenRecord.losses = jsonObject["teams"][0]["record"]["records"]["splitRecords"][8]["losses"];
         divisionId = jsonObject["teams"][0]["division"]["id"];
         leagueId = jsonObject["teams"][0]["league"]["id"];
         record = {wins, losses};
@@ -188,8 +190,22 @@ void MlbTeam::getNextGame(int &httpCode)
                         nextGame.awayTeamAbbreviation = (const char *)jsonObject["gameData"]["teams"]["away"]["abbreviation"];
 
                         nextGame.gameId = (int)jsonObject["gamePk"];
-                        nextGame.homeProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"]);
-                        nextGame.awayProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"]);
+                        if (jsonObject["gameData"]["probablePitchers"].containsKey("home"))
+                        {
+                            nextGame.homeProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["home"]["fullName"]);
+                        }
+                        else
+                        {
+                            nextGame.homeProbablePitcher = "Unknown";
+                        }
+                        if (jsonObject["gameData"]["probablePitchers"].containsKey("away"))
+                        {
+                            nextGame.awayProbablePitcher = removeAccented((const char *)jsonObject["gameData"]["probablePitchers"]["away"]["fullName"]);
+                        }
+                        else
+                        {
+                            nextGame.awayProbablePitcher = "Unknown";
+                        }
                         Serial.print("Next game probable pitchers: ");
                         Serial.print(nextGame.homeProbablePitcher);
                         Serial.print(" vs ");

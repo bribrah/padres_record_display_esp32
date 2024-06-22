@@ -35,6 +35,7 @@ const String access_point_password = "password";
 IPAddress access_point_ip_address;
 bool EEPROM_INITIALIZED = false;
 int startTime = 0;
+TaskHandle_t *serverTask;
 
 void connect_wifi()
 {
@@ -62,12 +63,18 @@ void connect_wifi()
       return;
     }
   }
+
   Serial.println('\n');
   Serial.println("Connection established!");
   Serial.print("IP address:\t");
   Serial.println(WiFi.localIP()); // Send the IP address of the ESP8266 to the computer
 
-  xTaskCreate(serverLoop, "serverLoop", 10000, NULL, 0, NULL);
+  // restart the server task
+  if (serverTask != NULL)
+  {
+    vTaskDelete(serverTask);
+  }
+  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, serverTask, 1);
 }
 
 int lastBrightness = 0;
@@ -108,6 +115,7 @@ void teamUpdateLoop(void *pvParameters)
     esp_task_wdt_reset();
 
     padres.update();
+    Serial.println("Padres updated");
     clearSegmentDisplay();
     if (padres.isPlaying)
     {
@@ -117,12 +125,13 @@ void teamUpdateLoop(void *pvParameters)
       bool padresHome = game.homeTeamId == PADRES_TEAM_ID;
       illuminateNumber(score.homeScore, padresHome ? 0 : 255, padresHome ? 255 : 0, 0, 0);
       illuminateNumber(score.awayScore, padresHome ? 255 : 0, padresHome ? 0 : 255, 0, 2);
+
       Serial.println("Padres are the home team");
       showSegmentDisplay();
 
       // SHOW SOME TEXT ON THE ARRAY
       texts[0] = {"Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamAbbreviation + " " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")", 255, 255, 0};
-      texts[1] = {"INNING:" + game.inningState + " of " + game.currentInning, 0, 0, 255};
+      texts[1] = {game.inningState + " of " + game.currentInning, 0, 0, 255};
 
       if (game.inningState == "Top" || game.inningState == "Bottom")
         texts[1].text += " " + (String)game.outs + " OUTS ";
@@ -138,28 +147,29 @@ void teamUpdateLoop(void *pvParameters)
     }
     else
     {
+
       // show record
       winLossRecord record = padres.record;
       illuminateNumber(record.wins, 0, 255, 0, 0);
       illuminateNumber(record.losses, 255, 0, 0, 2);
       showSegmentDisplay();
-
       // SHOW SOME TEXT ON THE ARRAY
       bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
       String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime;
-      String probablePitchersStr = "PROBABLE PITCHERS:" + padres.nextGame.homeTeamAbbreviation + ":" + padres.nextGame.homeProbablePitcher + " " + padres.nextGame.awayTeamAbbreviation + ":" + padres.nextGame.awayProbablePitcher;
+      String probablePitchersStr = "PROBABLE PITCHERS " + padres.nextGame.homeTeamAbbreviation + ":" + padres.nextGame.homeProbablePitcher + " " + padres.nextGame.awayTeamAbbreviation + ":" + padres.nextGame.awayProbablePitcher;
       String gameBackStr = "GAMES BACK NLWEST:" + String(padres.gamesBackFromFirst) + " WC:" + String(padres.gamesBackFromWildcard);
       String divisionRankStr = "DIV RANK:" + String(padres.divisionRank) + " WC RANK:" + String(padres.wildCardRank);
       String streakStr = "Streak:" + padres.streakType + " " + padres.streakNumber;
+      String lastTen = "Last 10:" + String(padres.lastTenRecord.wins) + "-" + String(padres.lastTenRecord.losses);
       bool isWinStreak = padres.streakType == "wins";
-
       texts[0] = {nextGameStr, 255, 255, 0};
       texts[1] = {probablePitchersStr, 122, 5, 232};
       texts[2] = {gameBackStr, 0, 0, 255};
       texts[3] = {divisionRankStr, 7, 191, 247};
       texts[4] = {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0};
+      texts[5] = {lastTen, 245, 238, 34};
 
-      ledMatrix.showMultiTexts(texts, 5);
+      ledMatrix.showMultiTexts(texts, 6);
     }
     delay(TEAM_UPDATE_INTERVAL);
   }
@@ -178,6 +188,7 @@ void setup()
 
   EEPROM.begin(1024); // Initialize EEPROM
   EEPROM_INITIALIZED = EEPROM.readString(EEPROM_INITALIZED_LOCATION) == "INITIALIZED";
+  // EEPROM_INITIALIZED = false;
   if (!EEPROM_INITIALIZED)
   {
     Serial.println("Initializing EEPROM");
@@ -189,9 +200,6 @@ void setup()
     EEPROM.commit();
   }
 
-  EEPROM.writeString(SSID_LOCATION, "T_TOWN-2G");
-  EEPROM.writeString(PASSWORD_LOCATION, "People46");
-  EEPROM.commit();
   setupSegmentDisplay(50);
   ledMatrix.setupMatrix(50);
 
@@ -199,13 +207,16 @@ void setup()
   WiFi.softAPsetHostname("padres_scoreboard");
   access_point_ip_address = WiFi.softAPIP();
 
+  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, serverTask, 1);
   Serial.print("Access point ip address:");
   Serial.println(access_point_ip_address);
-  esp_task_wdt_init(30, true); // 5 seconds timeout, and set panic handler true to reset the device
+
+  esp_task_wdt_init(30, true);
+
   xTaskCreatePinnedToCore(
       teamUpdateLoop,   /* Function to implement the task */
       "teamUpdateLoop", /* Name of the task */
-      10000,            /* Stack size in words */
+      8092,             /* Stack size in words */
       NULL,             /* Task input parameter */
       0,                /* Priority of the task */
       NULL,             /* Task handle. */
@@ -218,7 +229,7 @@ void setup()
   xTaskCreatePinnedToCore(
       ledLoop,   /* Function to implement the task */
       "ledLoop", /* Name of the task */
-      10000,     /* Stack size in words */
+      4096,      /* Stack size in words */
       NULL,      /* Task input parameter */
       0,         /* Priority of the task */
       NULL,      /* Task handle. */
