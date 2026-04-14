@@ -6,6 +6,12 @@ extern MlbTeam padres;
 void handleIndex()
 {
     String index = loadFile("/index.html");
+    if (index.isEmpty())
+    {
+        server.send(500, "text/plain", "Failed to load index.html");
+        return;
+    }
+
     server.send(200, "text/html", index);
 }
 
@@ -17,16 +23,20 @@ void getRecord()
     obj["team"] = padres.fullName;
     obj["wins"] = padres.record.wins;
     obj["losses"] = padres.record.losses;
-    obj["winningPercentage"] = (float)padres.record.wins / ((float)padres.record.wins + (float)padres.record.losses);
+    float totalGames = (float)padres.record.wins + (float)padres.record.losses;
+    obj["winningPercentage"] = totalGames > 0 ? (float)padres.record.wins / totalGames : 0.0f;
     obj["gamesBackDiv"] = padres.gamesBackFromFirst;
+    obj["gamesBackDivision"] = padres.gamesBackFromFirst;
     obj["gamesBackWC"] = padres.gamesBackFromWildcard;
     obj["divisionRank"] = padres.divisionRank;
     obj["leagueRank"] = padres.leagueRank;
     obj["wildCardRank"] = padres.wildCardRank;
     obj["streakType"] = padres.streakType;
     obj["streakNumber"] = padres.streakNumber;
+    obj["streak"] = padres.streakType + " " + String(padres.streakNumber);
     obj["runsAllowed"] = padres.runsAllowed;
     obj["runsScored"] = padres.runsScored;
+    obj["runDifferential"] = padres.runsScored - padres.runsAllowed;
 
     String response;
     serializeJson(obj, response);

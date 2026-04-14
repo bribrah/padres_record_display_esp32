@@ -20,6 +20,8 @@ JsonDocument makeHttpRequest(String url, int &httpCode)
     Serial.println("Making HTTP request to: " + url);
 
     http.useHTTP10(true);
+    http.setConnectTimeout(5000);
+    http.setTimeout(5000);
     http.begin(client, url);
     http.addHeader("Content-Type", "application/json"); // Specify content-type header
     httpCode = http.GET();                              // Send the request
@@ -37,7 +39,6 @@ JsonDocument makeHttpRequest(String url, int &httpCode)
         DeserializationError error = deserializeJson(doc, bufferedFile, DeserializationOption::NestingLimit(50));
         Serial.print("Finished parsing response, took: ");
         Serial.println(millis() - start);
-        http.end();
         if (error)
         {
             bool overAllocated = doc.overflowed();
@@ -54,6 +55,7 @@ JsonDocument makeHttpRequest(String url, int &httpCode)
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
+    http.end();
     Serial.print("Total time: ");
     Serial.println(millis() - totalStart);
     Serial.println("************************ Finished HTTP request ************************");
@@ -71,6 +73,8 @@ JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode)
     Serial.println("Making HTTP request to: " + url);
 
     http.useHTTP10(true);
+    http.setConnectTimeout(5000);
+    http.setTimeout(5000);
     http.begin(client, url);
     http.addHeader("Content-Type", "application/json"); // Specify content-type header
     httpCode = http.GET();                              // Send the request
@@ -88,7 +92,6 @@ JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode)
         DeserializationError error = deserializeJson(doc, bufferedFile, DeserializationOption::NestingLimit(14), DeserializationOption::Filter(filter));
         Serial.print("Finished parsing response, took: ");
         Serial.println(millis() - start);
-        http.end();
         if (error)
         {
             bool overAllocated = doc.overflowed();
@@ -105,6 +108,7 @@ JsonDocument makeHttpRequest(String url, JsonDocument filter, int &httpCode)
         Serial.print("Error code: ");
         Serial.println(httpCode);
     }
+    http.end();
     Serial.print("Total time: ");
     Serial.println(millis() - totalStart);
     Serial.println("************************ Finished HTTP request ************************");

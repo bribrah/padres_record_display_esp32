@@ -35,7 +35,7 @@ const String access_point_password = "password";
 IPAddress access_point_ip_address;
 bool EEPROM_INITIALIZED = false;
 int startTime = 0;
-TaskHandle_t *serverTask;
+TaskHandle_t serverTask = NULL;
 
 void connect_wifi()
 {
@@ -73,8 +73,9 @@ void connect_wifi()
   if (serverTask != NULL)
   {
     vTaskDelete(serverTask);
+    serverTask = NULL;
   }
-  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, serverTask, 1);
+  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, &serverTask, 1);
 }
 
 int lastBrightness = 0;
@@ -91,9 +92,9 @@ void ledLoop(void *pvParameters)
       lastBrightness = brightness;
       setSegmentBrightness(brightness);
       ledMatrix.setBrightness(brightness);
+      showSegmentDisplay();
     }
     ledMatrix.loopMatrix();
-    showSegmentDisplay();
     delay(MATRIX_UPDATE_INTERVAL);
   }
 }
@@ -117,7 +118,7 @@ void teamUpdateLoop(void *pvParameters)
     padres.update();
     Serial.println("Padres updated");
     clearSegmentDisplay();
-    if (padres.isPlaying)
+    if (padres.currentGame.populated && padres.opponent != nullptr)
     {
       // show score
       gameInfo game = padres.currentGame;
@@ -132,18 +133,20 @@ void teamUpdateLoop(void *pvParameters)
       // SHOW SOME TEXT ON THE ARRAY
       texts[0] = {"Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamAbbreviation + " " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")", 255, 255, 0};
       texts[1] = {game.inningState + " of " + game.currentInning, 0, 0, 255};
+      int liveTextCount = 2;
 
       if (game.inningState == "Top" || game.inningState == "Bottom")
         texts[1].text += " " + (String)game.outs + " OUTS ";
       if (padres.currentGame.hasLastPlay)
       {
         texts[2] = {"LAST PLAY:" + game.lastPlay, 122, 5, 232};
+        liveTextCount = 3;
       }
-      for (int i = 0; i < 3; i++)
+      for (int i = 0; i < liveTextCount; i++)
       {
         Serial.println(texts[i].text);
       }
-      ledMatrix.showMultiTexts(texts, 3);
+      ledMatrix.showMultiTexts(texts, liveTextCount);
     }
     else
     {
@@ -154,16 +157,24 @@ void teamUpdateLoop(void *pvParameters)
       illuminateNumber(record.losses, 255, 0, 0, 2);
       showSegmentDisplay();
       // SHOW SOME TEXT ON THE ARRAY
-      bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
-      String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime;
-      String probablePitchersStr = "PROBABLE PITCHERS " + padres.nextGame.homeTeamAbbreviation + ":" + padres.nextGame.homeProbablePitcher + " " + padres.nextGame.awayTeamAbbreviation + ":" + padres.nextGame.awayProbablePitcher;
       String gameBackStr = "GAMES BACK NLWEST:" + String(padres.gamesBackFromFirst) + " WC:" + String(padres.gamesBackFromWildcard);
       String divisionRankStr = "DIV RANK:" + String(padres.divisionRank) + " WC RANK:" + String(padres.wildCardRank);
       String streakStr = "Streak:" + padres.streakType + " " + padres.streakNumber;
       String lastTen = "Last 10:" + String(padres.lastTenRecord.wins) + "-" + String(padres.lastTenRecord.losses);
       bool isWinStreak = padres.streakType == "wins";
-      texts[0] = {nextGameStr, 255, 255, 0};
-      texts[1] = {probablePitchersStr, 122, 5, 232};
+      if (padres.nextGame.populated)
+      {
+        bool padresHomeNextGame = padres.nextGame.homeTeamId == PADRES_TEAM_ID;
+        String nextGameStr = "NEXT GAME VS " + (padresHomeNextGame ? padres.nextGame.awayTeam : padres.nextGame.homeTeam) + "(" + (String)padres.nextOpponentRecord.wins + "-" + (String)padres.nextOpponentRecord.losses + ") AT " + padres.nextGame.startTime;
+        String probablePitchersStr = "PROBABLE PITCHERS " + padres.nextGame.homeTeamAbbreviation + ":" + padres.nextGame.homeProbablePitcher + " " + padres.nextGame.awayTeamAbbreviation + ":" + padres.nextGame.awayProbablePitcher;
+        texts[0] = {nextGameStr, 255, 255, 0};
+        texts[1] = {probablePitchersStr, 122, 5, 232};
+      }
+      else
+      {
+        texts[0] = {"SCHEDULE DATA UNAVAILABLE", 255, 255, 0};
+        texts[1] = {"CHECK WIFI OR MLB API", 255, 0, 0};
+      }
       texts[2] = {gameBackStr, 0, 0, 255};
       texts[3] = {divisionRankStr, 7, 191, 247};
       texts[4] = {streakStr, isWinStreak ? 0 : 255, isWinStreak ? 255 : 0, 0};
@@ -207,7 +218,7 @@ void setup()
   WiFi.softAPsetHostname("padres_scoreboard");
   access_point_ip_address = WiFi.softAPIP();
 
-  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, serverTask, 1);
+  xTaskCreatePinnedToCore(serverLoop, "serverLoop", 8092, NULL, 0, &serverTask, 1);
   Serial.print("Access point ip address:");
   Serial.println(access_point_ip_address);
 

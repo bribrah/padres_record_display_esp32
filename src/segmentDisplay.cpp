@@ -1,6 +1,14 @@
 #include "segmentDisplay.h"
 
-xSemaphoreHandle segmentDisplayMutex = xSemaphoreCreateMutex();
+SemaphoreHandle_t segmentDisplayMutex = NULL;
+
+static void ensureSegmentDisplayMutex()
+{
+    if (segmentDisplayMutex == NULL)
+    {
+        segmentDisplayMutex = xSemaphoreCreateMutex();
+    }
+}
 
 int numberSegmentLookup[10][7] = {
     {1, 2, 3, 4, 5, 6, -1},     // 0
@@ -19,6 +27,7 @@ Adafruit_NeoPixel pixels(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 void changeAllLEDS(int r, int g, int b)
 {
+    ensureSegmentDisplayMutex();
     xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     for (int i = 0; i < NUM_LEDS; i++)
     {
@@ -39,12 +48,10 @@ void _illuminateSegment(int digit, int segment, int r, int g, int b)
 
 void illuminateNumber(int number, int r, int g, int b, int digitOffset)
 {
+    ensureSegmentDisplayMutex();
     xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
-    if (number >= 100)
-    {
-        return;
-    }
-    else if (number >= 10)
+    number = constrain(number, 0, 99);
+    if (number >= 10)
     {
         int secondDigit = number % 10;
         int firstDigit = number / 10;
@@ -76,6 +83,7 @@ void illuminateNumber(int number, int r, int g, int b, int digitOffset)
 
 void showSegmentDisplay()
 {
+    ensureSegmentDisplayMutex();
     xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     pixels.show();
     xSemaphoreGive(segmentDisplayMutex);
@@ -83,11 +91,15 @@ void showSegmentDisplay()
 
 void clearSegmentDisplay()
 {
+    ensureSegmentDisplayMutex();
+    xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     pixels.clear();
+    xSemaphoreGive(segmentDisplayMutex);
 }
 
 void setupSegmentDisplay(uint8_t brightness)
 {
+    ensureSegmentDisplayMutex();
     pinMode(LED_PIN, OUTPUT);
     pixels.begin();
     pixels.setBrightness(brightness);
@@ -97,5 +109,8 @@ void setupSegmentDisplay(uint8_t brightness)
 
 void setSegmentBrightness(uint8_t brightness)
 {
+    ensureSegmentDisplayMutex();
+    xSemaphoreTake(segmentDisplayMutex, portMAX_DELAY);
     pixels.setBrightness(brightness);
+    xSemaphoreGive(segmentDisplayMutex);
 }

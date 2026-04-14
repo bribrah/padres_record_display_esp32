@@ -14,11 +14,15 @@ LedMatrixDisplay::LedMatrixDisplay(uint8_t pin)
     numTexts = 0;
     currentTextIndex = 0;
     loopsSinceTextChange = 0;
-    ledMatrixMutex = xSemaphoreCreateMutex();
+    ledMatrixMutex = NULL;
 }
 
 void LedMatrixDisplay::setupMatrix(uint8_t brightness)
 {
+    if (ledMatrixMutex == NULL)
+    {
+        ledMatrixMutex = xSemaphoreCreateMutex();
+    }
     matrix.begin();
     matrix.setTextWrap(false);
     matrix.setBrightness(brightness);
@@ -45,33 +49,46 @@ void LedMatrixDisplay::showText(ledText text)
 
 void LedMatrixDisplay::showMultiTexts(ledText *texts, int numTexts)
 {
+    if (ledMatrixMutex == NULL)
+    {
+        return;
+    }
     xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
-    for (int i = 0; i < numTexts; i++)
+    int boundedNumTexts = min(numTexts, MAX_TEXTS);
+    for (int i = 0; i < boundedNumTexts; i++)
     {
         textArray[i] = texts[i];
     }
 
-    if (numTexts != this->numTexts)
+    if (boundedNumTexts != this->numTexts)
     {
         currentTextIndex = -1;
     }
-    this->numTexts = numTexts;
+    this->numTexts = boundedNumTexts;
     loopsSinceTextChange = 0;
     xSemaphoreGive(ledMatrixMutex);
 }
 
 void LedMatrixDisplay::showSingleText(ledText text)
 {
+    if (ledMatrixMutex == NULL)
+    {
+        return;
+    }
     xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
     numTexts = 1;
     textArray[0] = text;
-    currentTextIndex = -1 ;
+    currentTextIndex = -1;
     xSemaphoreGive(ledMatrixMutex);
 }
 
 void LedMatrixDisplay::loopMatrix()
 {
     if (numTexts == 0)
+    {
+        return;
+    }
+    if (ledMatrixMutex == NULL)
     {
         return;
     }
@@ -98,5 +115,11 @@ void LedMatrixDisplay::loopMatrix()
 
 void LedMatrixDisplay::setBrightness(uint8_t brightness)
 {
+    if (ledMatrixMutex == NULL)
+    {
+        return;
+    }
+    xSemaphoreTake(ledMatrixMutex, portMAX_DELAY);
     matrix.setBrightness(brightness);
+    xSemaphoreGive(ledMatrixMutex);
 }

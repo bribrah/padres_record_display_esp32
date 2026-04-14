@@ -33,6 +33,14 @@ struct gameInfo
     String inningState;
     String lastPlay;
     bool hasLastPlay;
+    String lastScoringPlay;
+    bool hasLastScoringPlay = false;
+    bool runnerOnFirst = false;
+    String runnerOnFirstName;
+    bool runnerOnSecond = false;
+    String runnerOnSecondName;
+    bool runnerOnThird = false;
+    String runnerOnThirdName;
     gameScore score;
     int outs;
     int balls;
