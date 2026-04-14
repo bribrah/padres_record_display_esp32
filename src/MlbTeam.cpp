@@ -164,15 +164,22 @@ void MlbTeam::getCurrentGameInfo(int &httpCode)
         currentGame.runnerOnThird = offense["third"]["fullName"].is<const char *>();
         currentGame.runnerOnThirdName = currentGame.runnerOnThird ? (const char *)offense["third"]["fullName"] : "";
 
-        if (jsonObject["liveData"]["plays"]["currentPlay"]["result"]["description"].is<const char *>())
+        currentGame.hasLastPlay = false;
+        currentGame.lastPlay = "";
+        JsonArray allPlays = jsonObject["liveData"]["plays"]["allPlays"];
+        if (allPlays.size() > 0)
+        {
+            JsonObject lastCompletedPlay = allPlays[allPlays.size() - 1];
+            if (lastCompletedPlay["result"]["description"].is<const char *>())
+            {
+                currentGame.lastPlay = (const char *)lastCompletedPlay["result"]["description"];
+                currentGame.hasLastPlay = true;
+            }
+        }
+        else if (jsonObject["liveData"]["plays"]["currentPlay"]["result"]["description"].is<const char *>())
         {
             currentGame.lastPlay = (const char *)jsonObject["liveData"]["plays"]["currentPlay"]["result"]["description"];
             currentGame.hasLastPlay = true;
-        }
-        else
-        {
-            currentGame.hasLastPlay = false;
-            currentGame.lastPlay = "";
         }
 
         JsonArray scoringPlays = jsonObject["liveData"]["plays"]["scoringPlays"];

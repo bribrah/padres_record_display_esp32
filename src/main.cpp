@@ -132,7 +132,24 @@ void teamUpdateLoop(void *pvParameters)
 
       // SHOW SOME TEXT ON THE ARRAY
       texts[0] = {"Padres(" + String(padres.record.wins) + "-" + String(padres.record.losses) + ") vs " + padres.opponent->teamAbbreviation + " " + padres.opponent->teamName + "(" + String(padres.opponent->record.wins) + "-" + String(padres.opponent->record.losses) + ")", 255, 255, 0};
-      texts[1] = {game.inningState + " of " + game.currentInning, 0, 0, 255};
+      String inningStr = game.inningState + " of " + String(game.currentInning);
+      if (game.runnerOnFirst || game.runnerOnSecond || game.runnerOnThird)
+      {
+        inningStr += " Runners on:";
+        if (game.runnerOnFirst)
+        {
+          inningStr += " 1st(" + game.runnerOnFirstName + ")";
+        }
+        if (game.runnerOnSecond)
+        {
+          inningStr += " 2nd(" + game.runnerOnSecondName + ")";
+        }
+        if (game.runnerOnThird)
+        {
+          inningStr += " 3rd(" + game.runnerOnThirdName + ")";
+        }
+      }
+      texts[1] = {inningStr, 0, 0, 255};
       int liveTextCount = 2;
 
       if (game.inningState == "Top" || game.inningState == "Bottom")
@@ -140,8 +157,15 @@ void teamUpdateLoop(void *pvParameters)
       if (padres.currentGame.hasLastPlay)
       {
         texts[2] = {"LAST PLAY:" + game.lastPlay, 122, 5, 232};
-        liveTextCount = 3;
+        liveTextCount++;
       }
+
+      if (padres.currentGame.hasLastScoringPlay)
+      {
+        texts[3] = {"LAST SCORING PLAY:" + game.lastScoringPlay, 245, 238, 34};
+        liveTextCount++;
+      }
+
       for (int i = 0; i < liveTextCount; i++)
       {
         Serial.println(texts[i].text);
